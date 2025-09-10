@@ -1,0 +1,86 @@
+Software Requirements Specification (SRS) - Poker Image Analysis 
+
+1) Objectives
+- Purpose: Demonstrate technical principles (screen capture, vision, OCR, game event modeling, analysis engine) to understand how such a system could analyze poker tables as if it were in real-time.
+- Allowed Use: stream
+- Outputs: Statistics, reconstructed hands, pedagogical feedback (shown on live).
+
+2) Functional Scope
+- Screen capture at 10–30 FPS of a selected window.
+- Detect changes (movements, board appearance, bets) to process only useful frames.
+- Detect hero cards, board cards, pot/stacks (via OCR), player positions, and betting actions.
+- Event bus: onNewHand, onBlindsPosted, onPreflopAction, onFlopDealt, onBetPlaced, onShowdown, etc.
+- Reconstruct full hand in JSON format with tolerance for unknowns.
+- Analysis engine: approximate equities (Monte Carlo), heuristic range comparisons, player profiling (VPIP, PFR, 3-bet, c-bet, etc.).
+- Feedback delayed until after hand, never live.
+- Dashboard and exports (CSV/JSON/PDF).
+
+4) Non-Functional Requirements
+- Latency: <150ms median at 1080p/15 FPS CPU; <60ms with GPU.
+- Accuracy: Card rank ≥99.5%, suit ≥99.9%, OCR amounts ≥98%, actions ≥97%.
+- Robustness: works across themes (light/dark), minor blur/zoom.
+- Security: 100% offline, encrypted database, anonymization on export.
+
+5) Architecture (Java)
+- Java 21, JavaFX for UI, OpenCV (vision), Tesseract (OCR via tess4j), ONNX Runtime (CNN/YOLO inference), SQLite encrypted (SQLCipher), Gradle, JUnit5.
+- Modules:
+  1. screen-capture
+  2. roi-profiles
+  3. vision-core
+  4. ocr-core
+  5. event-bus
+  6. hand-builder
+  7. analysis-engine
+  8. storage
+  9. ui-app
+  10. guardrails
+- Pipeline: Capture → ROI detection → Vision/OCR → Events → Hand Builder → Analysis → UI/Exports
+
+6) Data & Models
+- Card detection: CNN (ResNet-18) ONNX.
+- Board detection: YOLO-Nano ONNX.
+- OCR: Tesseract with restricted dictionary (digits, bb, $, etc.) + context post-filters.
+- Datasets: synthetic + annotated replays with manual labeling tool.
+- Metrics: top-1 accuracy, mAP, CER, end-to-end latency.
+
+7) UI/UX
+- Home: choose source, theme/ROI.
+- Calibration: interactive ROI selection.
+- Replayer: video + timeline + detected events.
+- Stats: Hero/Adversaries/Spots tabs, filters (street, position, stack depth).
+- Feedback: pedagogical notes unlocked after hand.
+- Exports: CSV/JSON/PDF, with anonymization options.
+
+8) Guardrails (Compliance/Ethics)
+- No automation APIs (mouse/keyboard).
+
+9) Testing & Validation
+- Unit tests: hand-builder, OCR filters, pot calculations.
+- Performance tests: latency and FPS at 720p/1080p.
+- Precision tests on frozen test sets across themes.
+- Acceptance: ≥98% correct hand reconstruction, pot error <1%.
+
+10) Deliverables
+- Multi-OS desktop app, ROI profiles, ONNX models, annotation tool, example dataset, user guide, and compliance guide.
+
+11) Indicative Schedule (8–10 weeks)
+- S1: ROI calibration, capture, motion detection
+- S2–S3: Card/board detection + OCR
+- S4: Event bus + hand-builder
+- S5: Analysis engine (equity, ranges) [training mode]
+- S6: UI replayer + stats + exports
+- S7: Performance, encryption
+- S8: Testing, documentation, packaging
+
+12) Risks & Mitigation
+- Visual variability → profiles and data augmentation.
+- OCR noise → regex, blind-level constraints.
+- Latency → multithreading, batching, GPU acceleration.
+- Compliance → enforced delay, disabled feedback on clients.
+
+13) Acceptance Criteria
+- Latency <150ms median (CPU 1080p replay).
+- Accuracy: cards ≥99.5%, OCR ≥98%.
+- ≥98% hands reconstructed correctly.
+- Feedback only after hand or delayed mode.
+
